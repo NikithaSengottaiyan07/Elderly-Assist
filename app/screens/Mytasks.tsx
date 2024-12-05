@@ -14,19 +14,34 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import BottomNav from "./Bottomnav";
 
+interface CategoryColors {
+  bg: string;
+  progress: string;
+  border: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  time: string;
+  completed: boolean;
+}
+
+interface CategoryTask {
+  id: string;
+  category: string;
+  tasks: Task[];
+  progress: number;
+}
+
 const Mytasks = () => {
-  const [tasks, setTasks] = useState([
+  const [tasks, setTasks] = useState<CategoryTask[]>([
     {
       id: "1",
       category: "Medication",
       tasks: [
         { id: "101", title: "Take Aspirin", time: "8:00 AM", completed: false },
-        {
-          id: "102",
-          title: "Take Vitamin D",
-          time: "12:00 PM",
-          completed: true,
-        },
+        { id: "102", title: "Take Vitamin D", time: "12:00 PM", completed: true },
       ],
       progress: 50,
     },
@@ -43,18 +58,8 @@ const Mytasks = () => {
       id: "3",
       category: "Socialize",
       tasks: [
-        {
-          id: "301",
-          title: "Call Grandchildren",
-          time: "5:00 PM",
-          completed: true,
-        },
-        {
-          id: "302",
-          title: "Join Friends Online",
-          time: "8:00 PM",
-          completed: false,
-        },
+        { id: "301", title: "Call Grandchildren", time: "5:00 PM", completed: true },
+        { id: "302", title: "Join Friends Online", time: "8:00 PM", completed: false },
       ],
       progress: 50,
     },
@@ -62,6 +67,18 @@ const Mytasks = () => {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newTask, setNewTask] = useState({ category: "", title: "", time: "" });
+
+  const categoryColors: Record<string, CategoryColors> = {
+    default: {
+      bg: '#f0f9ff',
+      progress: '#0284c7',
+      border: '#e0f2fe'
+    }
+  };
+
+  const getCategoryColor = (category: string): CategoryColors => {
+    return categoryColors[category] || categoryColors.default;
+  };
 
   const toggleTaskCompletion = (categoryId: string, taskId: string) => {
     const updatedTasks = tasks.map((category) => {
@@ -91,11 +108,10 @@ const Mytasks = () => {
     const category = tasks.find((cat) => cat.category === newTask.category);
 
     if (category) {
-      // Add the task to an existing category
       const updatedCategoryTasks = [
         ...category.tasks,
         {
-          id: `${Date.now()}`, // Generate unique ID for each task
+          id: `${Date.now()}`,
           title: newTask.title,
           time: newTask.time,
           completed: false,
@@ -114,9 +130,8 @@ const Mytasks = () => {
         tasks.map((cat) => (cat.id === category.id ? updatedCategory : cat))
       );
     } else {
-      // Create a new category if it doesn't exist
       const newCategory = {
-        id: `${Date.now()}`, // Generate unique ID for each category
+        id: `${Date.now()}`,
         category: newTask.category,
         tasks: [
           {
@@ -131,7 +146,6 @@ const Mytasks = () => {
       setTasks([...tasks, newCategory]);
     }
 
-    // Reset modal state after adding the task
     setNewTask({ category: "", title: "", time: "" });
     setModalVisible(false);
   };
@@ -169,72 +183,95 @@ const Mytasks = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={styles.categoryContainer}>
-              <View style={styles.categoryHeader}>
-                <View>
-                  <Text style={styles.categoryTitle}>{item.category}</Text>
-                  <View style={styles.progressBarContainer}>
-                    <View 
-                      style={[
-                        styles.progressBar, 
-                        { width: `${item.progress}%` }
-                      ]} 
-                    />
-                  </View>
-                </View>
-                <Text style={styles.progressText}>{item.progress}% Complete</Text>
-              </View>
-              
-              {item.tasks.map((task) => (
-                <View key={task.id} style={styles.taskRow}>
-                  <View style={styles.taskTimeContainer}>
-                    <Ionicons name="time-outline" size={16} color="#64748b" />
-                    <Text style={styles.taskTime}>{task.time}</Text>
-                  </View>
-                  
-                  <View style={styles.taskContent}>
-                    <Text style={[
-                      styles.taskTitle,
-                      task.completed && styles.taskTitleCompleted
-                    ]}>
-                      {task.title}
-                    </Text>
-                    
-                    <View style={styles.taskActions}>
-                      <TouchableOpacity
+          renderItem={({ item }) => {
+            const categoryColors = getCategoryColor(item.category);
+            return (
+              <View style={[
+                styles.categoryContainer,
+                { 
+                  backgroundColor: categoryColors.bg,
+                  borderColor: categoryColors.border,
+                  borderWidth: 1
+                }
+              ]}>
+                <View style={styles.categoryHeader}>
+                  <View>
+                    <Text style={styles.categoryTitle}>{item.category}</Text>
+                    <View style={styles.progressBarContainer}>
+                      <View 
                         style={[
-                          styles.statusButton,
-                          task.completed && styles.statusButtonCompleted
-                        ]}
-                        onPress={() => toggleTaskCompletion(item.id, task.id)}
-                      >
-                        {task.completed ? (
-                          <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                        ) : (
-                          <Ionicons name="radio-button-off" size={24} color="#64748b" />
-                        )}
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => handleDeleteTask(item.id, task.id)}
-                      >
-                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                      </TouchableOpacity>
+                          styles.progressBar, 
+                          { 
+                            width: `${item.progress}%`,
+                            backgroundColor: categoryColors.progress
+                          }
+                        ]} 
+                      />
                     </View>
                   </View>
+                  <Text style={[
+                    styles.progressText,
+                    { color: categoryColors.progress }
+                  ]}>
+                    {item.progress}% Complete
+                  </Text>
                 </View>
-              ))}
-            </View>
-          )}
+                
+                {item.tasks.map((task) => (
+                  <View key={task.id} style={[
+                    styles.taskRow,
+                    { borderBottomColor: categoryColors.border }
+                  ]}>
+                    <View style={styles.taskTimeContainer}>
+                      <Ionicons name="time-outline" size={20} color="#4b5563" />
+                      <Text style={styles.taskTime}>{task.time}</Text>
+                    </View>
+                    
+                    <View style={styles.taskContent}>
+                      <Text style={[
+                        styles.taskTitle,
+                        task.completed && styles.taskTitleCompleted
+                      ]}>
+                        {task.title}
+                      </Text>
+                      
+                      <View style={styles.taskActions}>
+                        <TouchableOpacity
+                          style={[
+                            styles.statusButton,
+                            task.completed && {
+                              backgroundColor: categoryColors.progress
+                            }
+                          ]}
+                          onPress={() => toggleTaskCompletion(item.id, task.id)}
+                        >
+                          {task.completed ? (
+                            <Ionicons name="checkmark-circle" size={28} color="#fff" />
+                          ) : (
+                            <Ionicons name="radio-button-off" size={28} color={categoryColors.progress} />
+                          )}
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                          style={styles.deleteButton}
+                          onPress={() => handleDeleteTask(item.id, task.id)}
+                        >
+                          <Ionicons name="trash-outline" size={24} color="#dc2626" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            );
+          }}
         />
 
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name="add" size={32} color="#fff" />
         </TouchableOpacity>
 
         <Modal visible={modalVisible} animationType="slide" transparent>
@@ -242,8 +279,11 @@ const Mytasks = () => {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Add New Task</Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Ionicons name="close" size={24} color="#64748b" />
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Ionicons name="close" size={28} color="#4b5563" />
                 </TouchableOpacity>
               </View>
               
@@ -298,83 +338,85 @@ const Mytasks = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#ffffff",
   },
   outerContainer: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#ffffff",
   },
   headerContainer: {
-    padding: 20,
-    backgroundColor: "#fff",
+    padding: 24,
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    borderBottomColor: "#f1f5f9",
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#1e293b",
+    color: "#111827",
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: "#64748b",
-    marginTop: 4,
+    fontSize: 16,
+    color: "#4b5563",
+    marginTop: 6,
   },
   listContainer: {
-    padding: 16,
+    padding: 20,
   },
   categoryContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 4,
   },
   categoryHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   categoryTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: 8,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 10,
   },
   progressBarContainer: {
-    height: 4,
-    backgroundColor: "#e2e8f0",
-    borderRadius: 2,
-    marginTop: 8,
+    height: 6,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 3,
+    marginTop: 10,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#3b82f6",
-    borderRadius: 2,
+    backgroundColor: "#2563eb",
+    borderRadius: 3,
   },
   progressText: {
-    fontSize: 12,
-    color: "#64748b",
-    marginTop: 4,
+    fontSize: 14,
+    color: "#4b5563",
+    marginTop: 6,
+    fontWeight: "500",
   },
   taskRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f1f5f9",
   },
   taskTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    width: 90,
+    width: 100,
   },
   taskTime: {
-    fontSize: 13,
-    color: "#64748b",
-    marginLeft: 4,
+    fontSize: 15,
+    color: "#4b5563",
+    marginLeft: 6,
+    fontWeight: "500",
   },
   taskContent: {
     flex: 1,
@@ -383,93 +425,100 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   taskTitle: {
-    fontSize: 15,
-    color: "#334155",
+    fontSize: 17,
+    color: "#111827",
     flex: 1,
+    fontWeight: "500",
   },
   taskTitleCompleted: {
-    color: "#94a3b8",
+    color: "#9ca3af",
     textDecorationLine: "line-through",
   },
   taskActions: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
   statusButton: {
-    marginRight: 12,
+    padding: 4,
   },
   statusButtonCompleted: {
-    backgroundColor: "#3b82f6",
-    borderRadius: 12,
+    backgroundColor: "#2563eb",
+    borderRadius: 14,
   },
   deleteButton: {
-    padding: 4,
+    padding: 6,
   },
   addButton: {
     position: "absolute",
-    bottom: 24,
-    right: 24,
-    backgroundColor: "#3b82f6",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: 32,
+    right: 32,
+    backgroundColor: "#2563eb",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.3)",
+    backgroundColor: "rgba(15, 23, 42, 0.4)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 36,
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 28,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1e293b",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  closeButton: {
+    padding: 6,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#64748b",
-    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4b5563",
+    marginBottom: 10,
   },
   input: {
     backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    color: "#1e293b",
+    borderRadius: 14,
+    padding: 16,
+    fontSize: 16,
+    color: "#111827",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   addTaskButton: {
-    backgroundColor: "#3b82f6",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#2563eb",
+    borderRadius: 14,
+    padding: 18,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 12,
   },
   addTaskButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#ffffff",
+    fontSize: 18,
     fontWeight: "600",
   },
 });
